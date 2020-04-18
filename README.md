@@ -6,38 +6,12 @@ A handy NFS Server image comprising Alpine Linux and NFS v4 only, over TCP on po
 
 The image comprises of;
 
-- [Alpine Linux](http://www.alpinelinux.org/) v3.8.1. Alpine Linux is a security-oriented, lightweight Linux distribution based on [musl libc](https://www.musl-libc.org/) (v1.1.19) and [BusyBox](https://www.busybox.net/).
+- [Alpine Linux](http://www.alpinelinux.org/) v3.11. Alpine Linux is a security-oriented, lightweight Linux distribution.
 - NFS v4 only, over TCP on port 2049. Rpcbind is enabled for now to overcome a bug with slow startup, it shouldn't be required.
-
-[Confd](https://www.confd.io/) is no longer used, making the image simpler & smaller and providing wider device compatibility.
-
-For ARM versions, tag 6-arm is based on [hypriot/rpi-alpine](https://github.com/hypriot/rpi-alpine) and tag 7 onwards based on the stock Alpine image. Tag 7 uses confd v0.16.0.
-
-For previous tags 7, 8 & 9;
-
-- Alpine Linux v3.7.0
-- Musl v1.1.18
-- Confd v0.14.0
-
-For previous tag 6;
-
-- Alpine Linux v3.6.0
-- Musl v1.1.15
-
-For previous tag 5;
-
-- Confd v0.13.0
-
-For previous tag 4;
-
-- Alpine Linux v3.5
-- Confd v0.12.0-dev
-
-**Note:** There were some serious flaws with image versions 3 and earlier. Please use **4** or later. The earlier version are only here in case they are used in automated workflows.
 
 When run, this container will make whatever directory is specified by the environment variable SHARED_DIRECTORY available to NFS v4 clients.
 
-`docker run -d --name nfs --privileged -v /some/where/fileshare:/nfsshare -e SHARED_DIRECTORY=/nfsshare itsthenetwork/nfs-server-alpine:latest`
+`docker run -d --name nfs --privileged -v /some/where/fileshare:/nfsshare -e SHARED_DIRECTORY=/nfsshare d0whc3r/nfs-server-alpine:latest`
 
 Add `--net=host` or `-p 2049:2049` to make the shares externally accessible via the host networking stack. This isn't necessary if using [Rancher](https://rancher.com/) or linking containers in some other way.
 
@@ -165,7 +139,7 @@ This image can be used to export and share multiple directories with a little mo
 
 To share multiple directories you'll need to mount additional volumes and specify additional environment variables in your docker run command. Here's an example:
 ```
-docker run -d --name nfs --privileged -v /some/where/fileshare:/nfsshare -v /some/where/else:/nfsshare/another -e SHARED_DIRECTORY=/nfsshare -e SHARED_DIRECTORY_2=/nfsshare/another itsthenetwork/nfs-server-alpine:latest
+docker run -d --name nfs --privileged -v /some/where/fileshare:/nfsshare -v /some/where/else:/nfsshare/another -e SHARED_DIRECTORY=/nfsshare -e SHARED_DIRECTORY_2=/nfsshare/another d0whc3r/nfs-server-alpine:latest
 ```
 
 You should then modify the **nfsd.sh** file to process the extra environment variables and add entries to the exports file. I've already included a working example to get you started:
@@ -229,78 +203,7 @@ Starting Mountd in the background...
 Startup successful.
 ```
 
-### What Good Looks Like - Confd Versions
+### Credits
 
-```
-The PERMITTED environment variable is missing or null, defaulting to '*'.
-Any client can mount.
-The READ_ONLY environment variable is missing or null, defaulting to 'rw'
-Clients have read/write access.
-The SYNC environment variable is missing or null, defaulting to 'async'.
-Writes will not be immediately written to disk.
-Starting Confd population of files...
-confd 0.14.0 (Git SHA: 9fab9634, Go Version: go1.9.1)
-2018-05-07T18:24:39Z d62d37258311 /usr/bin/confd[14]: INFO Backend set to env
-2018-05-07T18:24:39Z d62d37258311 /usr/bin/confd[14]: INFO Starting confd
-2018-05-07T18:24:39Z d62d37258311 /usr/bin/confd[14]: INFO Backend source(s) set to
-2018-05-07T18:24:39Z d62d37258311 /usr/bin/confd[14]: INFO /etc/exports has md5sum 4f1bb7b2412ce5952ecb5ec22d8ed99d should be 92cc8fa446eef0e167648be03aba09e5
-2018-05-07T18:24:39Z d62d37258311 /usr/bin/confd[14]: INFO Target config /etc/exports out of sync
-2018-05-07T18:24:39Z d62d37258311 /usr/bin/confd[14]: INFO Target config /etc/exports has been updated
-Displaying /etc/exports contents...
-/nfsshare *(rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)
-Starting rpcbind...
-Displaying rpcbind status...
-   program version netid     address                service    owner
-    100000    4    tcp6      ::.0.111               -          superuser
-    100000    3    tcp6      ::.0.111               -          superuser
-    100000    4    udp6      ::.0.111               -          superuser
-    100000    3    udp6      ::.0.111               -          superuser
-    100000    4    tcp       0.0.0.0.0.111          -          superuser
-    100000    3    tcp       0.0.0.0.0.111          -          superuser
-    100000    2    tcp       0.0.0.0.0.111          -          superuser
-    100000    4    udp       0.0.0.0.0.111          -          superuser
-    100000    3    udp       0.0.0.0.0.111          -          superuser
-    100000    2    udp       0.0.0.0.0.111          -          superuser
-    100000    4    local     /var/run/rpcbind.sock  -          superuser
-    100000    3    local     /var/run/rpcbind.sock  -          superuser
-Starting NFS in the background...
-rpc.nfsd: knfsd is currently down
-rpc.nfsd: Writing version string to kernel: -2 -3 +4
-rpc.nfsd: Created AF_INET TCP socket.
-rpc.nfsd: Created AF_INET6 TCP socket.
-Exporting File System...
-exporting *:/nfsshare
-/nfsshare     	<world>
-Starting Mountd in the background...
-Startup successful.
-```
-
-### Dockerfile
-
-The Dockerfile used to create this image is available at the root of the file system on build.
-
-```
-FROM alpine:latest
-LABEL maintainer "Steven Iveson <steve@iveson.eu>"
-LABEL source "https://github.com/sjiveson/nfs-server-alpine"
-LABEL branch "master"
-COPY Dockerfile README.md /
-
-RUN apk add --no-cache --update --verbose nfs-utils bash iproute2 && \
-    rm -rf /var/cache/apk /tmp /sbin/halt /sbin/poweroff /sbin/reboot && \
-    mkdir -p /var/lib/nfs/rpc_pipefs /var/lib/nfs/v4recovery && \
-    echo "rpc_pipefs    /var/lib/nfs/rpc_pipefs rpc_pipefs      defaults        0       0" >> /etc/fstab && \
-    echo "nfsd  /proc/fs/nfsd   nfsd    defaults        0       0" >> /etc/fstab
-
-COPY exports /etc/
-COPY nfsd.sh /usr/bin/nfsd.sh
-COPY .bashrc /root/.bashrc
-
-RUN chmod +x /usr/bin/nfsd.sh
-
-ENTRYPOINT ["/usr/bin/nfsd.sh"]
-```
-
-### Acknowlegements
-
-Thanks to Torsten Bronger @bronger for the suggestion and help around implementing a multistage Docker build to better handle the inclusion of Confd (since removed).
+[https://github.com/sjiveson/nfs-server-alpine](https://github.com/sjiveson/nfs-server-alpine)
+[https://hub.docker.com/r/itsthenetwork/nfs-server-alpine/](https://hub.docker.com/r/itsthenetwork/nfs-server-alpine/)
